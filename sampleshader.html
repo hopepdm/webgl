@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>shader</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script id='vertexShader' type='x-shader/x-vertex'>
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }    
+    </script>
+ 
+    <script id='fragmentShader' type='x-shader/x-fragment'>       
+         void main() {
+             gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);        
+         }
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/86/three.min.js'></script>
+    <script src='js/OrbitControls.js'></script>
+    <script>
+        var container;
+        var control;
+        var camera, scene, renderer;
+        var mesh, zmesh, lightMesh, geomertry;
+        var spheres = [];
+
+        var direcctionalLight, pointLight;
+
+        var windowHaflX = window.innerWidth / 2;
+        var windowHaflY = window.innerHeight / 2;
+
+        init();
+        animate();
+
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(60, windowHaflX / windowHaflY, 1, 100000);
+            camera.position.z = 18000;
+
+            var path = 'textures/';
+            var format = '.jpg';
+            var urls = [
+                path + 'posx' + format, path + 'negx' + format,
+                path + 'posy' + format, path + 'negy' + format,
+                path + 'posz' + format, path + 'negz' + format
+            ];
+
+            var textureCube = new THREE.CubeTextureLoader().load(urls);
+            textureCube.format = THREE.RGBFormat;
+
+            scene = new THREE.Scene();
+            scene.background = textureCube;
+
+            var geometry = new THREE.SphereGeometry(100, 32, 16);
+
+            var uniforms = THREE.UniformsUtils.clone({
+		        "mRefractionRatio": { value: 1.02 },
+		        "mFresnelBias": { value: 0.1 },
+		        "mFresnelPower": { value: 2.0 },
+		        "mFresnelScale": { value: 1.0 },
+		        "tCube": { value: null }
+            });
+            
+            uniforms['tCube'].value = textureCube;
+
+            var material = new THREE.ShaderMaterial({
+                uniforms: uniforms,
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent 
+
+            });
+
+            for(var i = 0; i < 100; i++){
+                var mesh = new THREE.Mesh(geometry,material);
+                mesh.position.x = Math.random() * 10000 - 5000;
+                mesh.position.y = Math.random() * 10000 - 5000;
+                mesh.position.z = Math.random() * 10000 - 5000;
+
+                mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 30 + 1;
+                
+                scene.add(mesh);
+
+                spheres.push(mesh);
+
+            }
+
+            scene.matrixAutoUpdate = false;
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: false
+            });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            control = new THREE.OrbitControls(camera, renderer.domElement);
+            control.addEventListener('change', render);
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            windowHaflX = window.innerWidth;
+            windowHaflY = window.innerHeight;
+
+            camera.aspect = windowHaflX / windowHaflY;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            control.update();
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
